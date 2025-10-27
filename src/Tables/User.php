@@ -46,13 +46,15 @@ class User extends ListFilters {
 			return;
 		}
 
-		// Close the previous .alignleft.actions div and start our own
-		echo '</div><div class="alignleft actions">';
+		// Wrap in span to prevent float issues
+		echo '<span style="display: inline-block; margin-left: 8px;">';
 
 		$this->render_filters();
 
 		// Add filter button
 		submit_button( __( 'Filter' ), '', 'filter_action', false );
+
+		echo '</span>';
 	}
 
 	/**
@@ -66,7 +68,7 @@ class User extends ListFilters {
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
 		foreach ( $filters as $key => $filter ) {
-			// Skip if filter not set or empty - check both GET and REQUEST
+			// Skip if filter not set or empty - check REQUEST
 			if ( ! isset( $_REQUEST[ $key ] ) || $_REQUEST[ $key ] === '' ) {
 				continue;
 			}
@@ -80,14 +82,20 @@ class User extends ListFilters {
 
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
-				// Create a simple wrapper to modify args via set() method
-				$query_wrapper = new class( $args ) {
-					public function __construct( public array $args ) {}
-					public function set( $key, $value ) { $this->args[ $key ] = $value; }
+				// Simple array wrapper for PHP 7.4 compatibility
+				$args_wrapper = [ 'data' => $args ];
+				$query_wrapper = new class( $args_wrapper ) {
+					private $args_ref;
+					public function __construct( &$args_ref ) {
+						$this->args_ref = &$args_ref;
+					}
+					public function set( $key, $value ) {
+						$this->args_ref['data'][ $key ] = $value;
+					}
 				};
 
 				call_user_func( $filter['query_callback'], $query_wrapper, $value );
-				$args = $query_wrapper->args;
+				$args = $args_wrapper['data'];
 			}
 			// Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
