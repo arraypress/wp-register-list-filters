@@ -44,6 +44,13 @@ abstract class ListFilters {
 	protected static array $filters = [];
 
 	/**
+	 * Registered instances to prevent duplicates
+	 *
+	 * @var array<string, array<string, bool>>
+	 */
+	protected static array $instances = [];
+
+	/**
 	 * ListFilters constructor.
 	 *
 	 * @param array  $filters        Filter configurations.
@@ -58,6 +65,14 @@ abstract class ListFilters {
 
 		$this->object_type    = static::OBJECT_TYPE;
 		$this->object_subtype = $object_subtype;
+
+		// Prevent duplicate registration
+		$instance_key = $this->object_type . '_' . $this->object_subtype;
+		if ( isset( self::$instances[ $instance_key ] ) ) {
+			return;
+		}
+		self::$instances[ $instance_key ] = true;
+
 		$this->add_filters( $filters );
 
 		// Load hooks immediately if already in admin, otherwise wait
@@ -94,7 +109,7 @@ abstract class ListFilters {
 
 			$filter = wp_parse_args( $filter, $default_filter );
 
-			// Autopopulate options from taxonomy if specified
+			// Auto-populate options from taxonomy if specified
 			if ( ! empty( $filter['taxonomy'] ) && empty( $filter['options'] ) ) {
 				$filter['options'] = $this->get_taxonomy_options( $filter['taxonomy'], $filter['hide_empty'], $filter['show_count'] );
 			}
