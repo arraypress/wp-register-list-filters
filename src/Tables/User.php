@@ -28,33 +28,18 @@ class User extends ListFilters {
 	 * @return void
 	 */
 	public function load_hooks(): void {
-		// Use high priority to come after role dropdown, then manually add button
-		add_action( 'restrict_manage_users', [ $this, 'start_output_buffer' ], 1 );
-		add_action( 'restrict_manage_users', [ $this, 'render_filters_after_change_button' ], 100 );
-		add_filter( 'pre_get_users', [ $this, 'modify_query' ] );
+		// Render filters
+		add_action( 'restrict_manage_users', [ $this, 'render_filters_and_button' ] );
+		// Use the correct filter for user list table queries
+		add_filter( 'users_list_table_query_args', [ $this, 'modify_list_table_query' ] );
 	}
 
 	/**
-	 * Start output buffering to capture role dropdown.
+	 * Render filters and button for users.
 	 *
 	 * @return void
 	 */
-	public function start_output_buffer(): void {
-		ob_start();
-	}
-
-	/**
-	 * Render filters after the change button by manipulating the output.
-	 *
-	 * @return void
-	 */
-	public function render_filters_after_change_button(): void {
-		$content = ob_get_clean();
-
-		// Output the original content (role dropdown + change button)
-		echo $content;
-
-		// Now add our filters
+	public function render_filters_and_button(): void {
 		$this->render_filters();
 
 		// Add filter button
@@ -65,20 +50,13 @@ class User extends ListFilters {
 	}
 
 	/**
-	 * Modify the query based on selected filters.
+	 * Modify the user list table query arguments.
 	 *
-	 * @param \WP_User_Query $query The query object.
+	 * @param array $args Query arguments.
 	 *
-	 * @return void
+	 * @return array Modified query arguments.
 	 */
-	public function modify_query( $query ): void {
-		global $pagenow;
-
-		// Only modify admin queries
-		if ( ! is_admin() || $pagenow !== 'users.php' ) {
-			return;
-		}
-
+	public function modify_list_table_query( $args ): array {
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
 		foreach ( $filters as $key => $filter ) {
@@ -96,22 +74,48 @@ class User extends ListFilters {
 
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
-				call_user_func( $filter['query_callback'], $query, $value );
-			} // Priority 2: Taxonomy query
+				// Create a mock query object that can set args
+				$mock_query = new class( $args ) {
+					private $args;
+					public function __construct( $args ) { $this->args = $args; }
+					public function set( $key, $value ) { $this->args[ $key ] = $value; }
+					public function get_args() { return $this->args; }
+				};
+
+				call_user_func( $filter['query_callback'], $mock_query, $value );
+				$args = $mock_query->get_args();
+			}
+			// Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
-				$query->set( 'tax_query', [
+				$args['tax_query'] = [
 					[
 						'taxonomy' => $filter['taxonomy'],
 						'field'    => 'slug',
 						'terms'    => $value
 					]
-				] );
-			} // Priority 3: Auto meta query (use filter key as meta_key)
+				];
+			}
+			// Priority 3: Auto meta query (use filter key as meta_key)
 			else {
-				$query->set( 'meta_key', $key );
-				$query->set( 'meta_value', $value );
+				$args['meta_key']   = $key;
+				$args['meta_value'] = $value;
 			}
 		}
+
+		return $args;
+	}
+
+	/**
+	 * Modify the query based on selected filters.
+	 * Kept for backwards compatibility but not used for list table.
+	 *
+	 * @param \WP_User_Query $query The query object.
+	 *
+	 * @return void
+	 */
+	public function modify_query( $query ): void {
+		// This method is not used for the users list table
+		// The list table uses users_list_table_query_args filter instead
 	}
 
 }

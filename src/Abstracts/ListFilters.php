@@ -226,8 +226,8 @@ abstract class ListFilters {
 
 			printf(
 				'<option value="%s"%s>%s</option>',
-				esc_attr( $value ),
-				selected( $selected, $value, false ),
+				esc_attr( (string) $value ),
+				selected( $selected, (string) $value, false ),
 				esc_html( $option_label )
 			);
 		}
