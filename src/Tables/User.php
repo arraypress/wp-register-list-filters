@@ -14,6 +14,7 @@ declare( strict_types=1 );
 namespace ArrayPress\WP\RegisterListFilters\Tables;
 
 use ArrayPress\WP\RegisterListFilters\Abstracts\ListFilters;
+use ArrayPress\WP\RegisterListFilters\Helpers\QueryArgsAdapter;
 
 class User extends ListFilters {
 
@@ -28,9 +29,7 @@ class User extends ListFilters {
 	 * @return void
 	 */
 	public function load_hooks(): void {
-		// Render filters
 		add_action( 'restrict_manage_users', [ $this, 'render_filters_and_button' ] );
-		// Use the correct filter for user list table queries
 		add_filter( 'users_list_table_query_args', [ $this, 'modify_list_table_query' ] );
 	}
 
@@ -100,22 +99,9 @@ class User extends ListFilters {
 
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
-				// Simple array wrapper for PHP 7.4 compatibility
-				$args_wrapper  = [ 'data' => $args ];
-				$query_wrapper = new class( $args_wrapper ) {
-					private $args_ref;
-
-					public function __construct( &$args_ref ) {
-						$this->args_ref = &$args_ref;
-					}
-
-					public function set( $key, $value ) {
-						$this->args_ref['data'][ $key ] = $value;
-					}
-				};
-
+				$query_wrapper = new QueryArgsAdapter( $args );
 				call_user_func( $filter['query_callback'], $query_wrapper, $value );
-				$args = $args_wrapper['data'];
+				$args = $query_wrapper->get_args();
 			} // Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
 				if ( ! isset( $args['tax_query'] ) ) {

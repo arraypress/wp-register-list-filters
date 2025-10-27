@@ -75,8 +75,9 @@ abstract class ListFilters {
 
 		$this->add_filters( $filters );
 
-		// Load hooks immediately if already in admin, otherwise wait
-		if ( did_action( 'admin_init' ) ) {
+		// Load hooks on admin_init, but check if init has already fired
+		// This ensures taxonomies are registered before we try to fetch terms
+		if ( did_action( 'init' ) ) {
 			$this->load_hooks();
 		} else {
 			add_action( 'admin_init', [ $this, 'load_hooks' ] );
@@ -213,7 +214,12 @@ abstract class ListFilters {
 	 * @return void
 	 */
 	protected function render_dropdown( string $key, array $filter, string $selected ): void {
-		echo '<select name="' . esc_attr( $key ) . '" id="' . esc_attr( $key ) . '">';
+		printf(
+			'<select name="%s" id="%s" data-filter-key="%s">',
+			esc_attr( $key ),
+			esc_attr( $key ),
+			esc_attr( $key )
+		);
 		echo '<option value="">' . esc_html( $filter['label'] ) . '</option>';
 
 		foreach ( $filter['options'] as $value => $label ) {
