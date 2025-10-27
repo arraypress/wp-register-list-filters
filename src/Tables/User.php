@@ -40,13 +40,19 @@ class User extends ListFilters {
 	 * @return void
 	 */
 	public function render_filters_and_button(): void {
+		$filters = self::get_filters( $this->object_type, $this->object_subtype );
+
+		if ( empty( $filters ) ) {
+			return;
+		}
+
+		// Close the previous .alignleft.actions div and start our own
+		echo '</div><div class="alignleft actions">';
+
 		$this->render_filters();
 
 		// Add filter button
-		$filters = self::get_filters( $this->object_type, $this->object_subtype );
-		if ( ! empty( $filters ) ) {
-			submit_button( __( 'Filter' ), '', 'filter_action', false );
-		}
+		submit_button( __( 'Filter' ), '', 'filter_action', false );
 	}
 
 	/**
@@ -60,8 +66,8 @@ class User extends ListFilters {
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
 		foreach ( $filters as $key => $filter ) {
-			// Skip if filter not set or empty
-			if ( empty( $_GET[ $key ] ) ) {
+			// Skip if filter not set or empty - check both GET and REQUEST
+			if ( ! isset( $_REQUEST[ $key ] ) || $_REQUEST[ $key ] === '' ) {
 				continue;
 			}
 
@@ -70,20 +76,18 @@ class User extends ListFilters {
 				continue;
 			}
 
-			$value = sanitize_text_field( $_GET[ $key ] );
+			$value = sanitize_text_field( wp_unslash( $_REQUEST[ $key ] ) );
 
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
-				// Create a mock query object that can set args
-				$mock_query = new class( $args ) {
-					private $args;
-					public function __construct( $args ) { $this->args = $args; }
+				// Create a simple wrapper to modify args via set() method
+				$query_wrapper = new class( $args ) {
+					public function __construct( public array $args ) {}
 					public function set( $key, $value ) { $this->args[ $key ] = $value; }
-					public function get_args() { return $this->args; }
 				};
 
-				call_user_func( $filter['query_callback'], $mock_query, $value );
-				$args = $mock_query->get_args();
+				call_user_func( $filter['query_callback'], $query_wrapper, $value );
+				$args = $query_wrapper->args;
 			}
 			// Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
