@@ -35,16 +35,30 @@ class User extends ListFilters {
 	}
 
 	/**
+	 * Track if filters have been rendered to prevent duplicates
+	 *
+	 * @var bool
+	 */
+	protected static bool $rendered = false;
+
+	/**
 	 * Render filters and button for users.
 	 *
 	 * @return void
 	 */
 	public function render_filters_and_button(): void {
+		// Prevent duplicate rendering (action fires twice: top and bottom of table)
+		if ( self::$rendered ) {
+			return;
+		}
+
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
 		if ( empty( $filters ) ) {
 			return;
 		}
+
+		self::$rendered = true;
 
 		// Wrap in span to prevent float issues
 		echo '<span style="display: inline-block; margin-left: 8px;">';
@@ -67,6 +81,10 @@ class User extends ListFilters {
 	public function modify_list_table_query( $args ): array {
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
+		// Initialize meta_query array for AND logic
+		$meta_query       = [];
+		$has_meta_filters = false;
+
 		foreach ( $filters as $key => $filter ) {
 			// Skip if filter not set or empty - check REQUEST
 			if ( ! isset( $_REQUEST[ $key ] ) || $_REQUEST[ $key ] === '' ) {
@@ -83,12 +101,14 @@ class User extends ListFilters {
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
 				// Simple array wrapper for PHP 7.4 compatibility
-				$args_wrapper = [ 'data' => $args ];
+				$args_wrapper  = [ 'data' => $args ];
 				$query_wrapper = new class( $args_wrapper ) {
 					private $args_ref;
+
 					public function __construct( &$args_ref ) {
 						$this->args_ref = &$args_ref;
 					}
+
 					public function set( $key, $value ) {
 						$this->args_ref['data'][ $key ] = $value;
 					}
@@ -96,22 +116,37 @@ class User extends ListFilters {
 
 				call_user_func( $filter['query_callback'], $query_wrapper, $value );
 				$args = $args_wrapper['data'];
-			}
-			// Priority 2: Taxonomy query
+			} // Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
-				$args['tax_query'] = [
-					[
-						'taxonomy' => $filter['taxonomy'],
-						'field'    => 'slug',
-						'terms'    => $value
-					]
+				if ( ! isset( $args['tax_query'] ) ) {
+					$args['tax_query'] = [];
+				}
+				$args['tax_query'][] = [
+					'taxonomy' => $filter['taxonomy'],
+					'field'    => 'slug',
+					'terms'    => $value
 				];
-			}
-			// Priority 3: Auto meta query (use filter key as meta_key)
+				// Set relation to AND if multiple tax queries
+				if ( count( $args['tax_query'] ) > 1 && ! isset( $args['tax_query']['relation'] ) ) {
+					$args['tax_query']['relation'] = 'AND';
+				}
+			} // Priority 3: Auto meta query (use filter key as meta_key)
 			else {
-				$args['meta_key']   = $key;
-				$args['meta_value'] = $value;
+				$meta_query[]     = [
+					'key'     => $key,
+					'value'   => $value,
+					'compare' => '='
+				];
+				$has_meta_filters = true;
 			}
+		}
+
+		// Apply meta query with AND relation if we have multiple filters
+		if ( $has_meta_filters ) {
+			if ( count( $meta_query ) > 1 ) {
+				$meta_query['relation'] = 'AND';
+			}
+			$args['meta_query'] = $meta_query;
 		}
 
 		return $args;

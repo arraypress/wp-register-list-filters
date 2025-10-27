@@ -74,6 +74,10 @@ class Post extends ListFilters {
 
 		$filters = self::get_filters( $this->object_type, $this->object_subtype );
 
+		// Initialize arrays for AND logic
+		$meta_query = [];
+		$tax_query  = [];
+
 		foreach ( $filters as $key => $filter ) {
 			// Skip if filter not set or empty
 			if ( empty( $_GET[ $key ] ) ) {
@@ -90,22 +94,37 @@ class Post extends ListFilters {
 			// Priority 1: Custom query callback
 			if ( ! empty( $filter['query_callback'] ) && is_callable( $filter['query_callback'] ) ) {
 				call_user_func( $filter['query_callback'], $query, $value );
-			}
-			// Priority 2: Taxonomy query
+			} // Priority 2: Taxonomy query
 			elseif ( ! empty( $filter['taxonomy'] ) ) {
-				$query->set( 'tax_query', [
-					[
-						'taxonomy' => $filter['taxonomy'],
-						'field'    => 'slug',
-						'terms'    => $value
-					]
-				] );
-			}
-			// Priority 3: Auto meta query (use filter key as meta_key)
+				$tax_query[] = [
+					'taxonomy' => $filter['taxonomy'],
+					'field'    => 'slug',
+					'terms'    => $value
+				];
+			} // Priority 3: Auto meta query (use filter key as meta_key)
 			else {
-				$query->set( 'meta_key', $key );
-				$query->set( 'meta_value', $value );
+				$meta_query[] = [
+					'key'     => $key,
+					'value'   => $value,
+					'compare' => '='
+				];
 			}
+		}
+
+		// Apply meta query with AND relation if we have multiple filters
+		if ( ! empty( $meta_query ) ) {
+			if ( count( $meta_query ) > 1 ) {
+				$meta_query['relation'] = 'AND';
+			}
+			$query->set( 'meta_query', $meta_query );
+		}
+
+		// Apply tax query with AND relation if we have multiple filters
+		if ( ! empty( $tax_query ) ) {
+			if ( count( $tax_query ) > 1 ) {
+				$tax_query['relation'] = 'AND';
+			}
+			$query->set( 'tax_query', $tax_query );
 		}
 	}
 
