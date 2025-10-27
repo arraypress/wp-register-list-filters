@@ -182,8 +182,8 @@ abstract class ListFilters {
 				continue;
 			}
 
-			// Lazy load taxonomy options if not already loaded
-			if ( ! empty( $filter['taxonomy'] ) && empty( $filter['options'] ) ) {
+			// Lazy load taxonomy options if taxonomy is specified
+			if ( ! empty( $filter['taxonomy'] ) ) {
 				$filter['options'] = $this->get_taxonomy_options( $filter['taxonomy'], $filter['hide_empty'], $filter['show_count'] );
 			}
 
@@ -192,8 +192,11 @@ abstract class ListFilters {
 				continue;
 			}
 
-			// Get selected value
-			$selected = isset( $_GET[ $key ] ) ? sanitize_text_field( $_GET[ $key ] ) : '';
+			// Get selected value - check both GET and REQUEST
+			$selected = '';
+			if ( isset( $_REQUEST[ $key ] ) && $_REQUEST[ $key ] !== '' ) {
+				$selected = sanitize_text_field( wp_unslash( $_REQUEST[ $key ] ) );
+			}
 
 			// Render dropdown
 			$this->render_dropdown( $key, $filter, $selected );
