@@ -29,7 +29,6 @@ class Post extends ListFilters {
 	 */
 	public function load_hooks(): void {
 		add_action( 'restrict_manage_posts', [ $this, 'render_filters_for_post_type' ] );
-		add_action( 'restrict_manage_posts', [ $this, 'render_filter_button' ], 11 );
 		add_filter( 'parse_query', [ $this, 'modify_query' ] );
 	}
 
@@ -46,27 +45,6 @@ class Post extends ListFilters {
 		}
 
 		$this->render_filters();
-	}
-
-	/**
-	 * Render the filter button.
-	 *
-	 * @param string $post_type Current post type.
-	 *
-	 * @return void
-	 */
-	public function render_filter_button( string $post_type ): void {
-		if ( $post_type !== $this->object_subtype ) {
-			return;
-		}
-
-		$filters = self::get_filters( $this->object_type, $this->object_subtype );
-
-		if ( empty( $filters ) ) {
-			return;
-		}
-
-		submit_button( __( 'Filter' ), '', 'filter_action', false );
 	}
 
 	/**
@@ -89,7 +67,7 @@ class Post extends ListFilters {
 		}
 
 		// Check if this is the correct post type
-		$current_post_type = isset( $query->query['post_type'] ) ? $query->query['post_type'] : 'post';
+		$current_post_type = $query->query['post_type'] ?? 'post';
 		if ( $current_post_type !== $this->object_subtype ) {
 			return;
 		}
