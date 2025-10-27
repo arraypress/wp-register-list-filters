@@ -109,11 +109,7 @@ abstract class ListFilters {
 
 			$filter = wp_parse_args( $filter, $default_filter );
 
-			// Auto-populate options from taxonomy if specified
-			if ( ! empty( $filter['taxonomy'] ) && empty( $filter['options'] ) ) {
-				$filter['options'] = $this->get_taxonomy_options( $filter['taxonomy'], $filter['hide_empty'], $filter['show_count'] );
-			}
-
+			// Store the filter config - taxonomy options will be fetched at render time
 			self::$filters[ $this->object_type ][ $this->object_subtype ][ $key ] = $filter;
 		}
 	}
@@ -184,6 +180,11 @@ abstract class ListFilters {
 			// Check capability
 			if ( ! empty( $filter['capability'] ) && ! current_user_can( $filter['capability'] ) ) {
 				continue;
+			}
+
+			// Lazy load taxonomy options if not already loaded
+			if ( ! empty( $filter['taxonomy'] ) && empty( $filter['options'] ) ) {
+				$filter['options'] = $this->get_taxonomy_options( $filter['taxonomy'], $filter['hide_empty'], $filter['show_count'] );
 			}
 
 			// Check if options are provided
