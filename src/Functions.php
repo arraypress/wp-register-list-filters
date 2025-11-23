@@ -13,8 +13,8 @@
 
 declare( strict_types=1 );
 
-use ArrayPress\WP\RegisterListFilters\Tables\Post;
-use ArrayPress\WP\RegisterListFilters\Tables\User;
+use ArrayPress\RegisterListFilters\Tables\Post;
+use ArrayPress\RegisterListFilters\Tables\User;
 
 if ( ! function_exists( 'register_post_list_filters' ) ):
 	/**

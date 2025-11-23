@@ -26,7 +26,7 @@ composer require arraypress/wp-register-list-filters
 ### Post Filters
 
 ```php
-use function ArrayPress\WP\RegisterListFilters\register_post_list_filters;
+use function ArrayPress\RegisterListFilters\register_post_list_filters;
 
 // Add filters to the Posts list table
 register_post_list_filters( 'post', [
@@ -62,7 +62,7 @@ register_post_list_filters( 'post', [
 ### User Filters
 
 ```php
-use function ArrayPress\WP\RegisterListFilters\register_user_list_filters;
+use function ArrayPress\RegisterListFilters\register_user_list_filters;
 
 // Add filters to the Users list table
 register_user_list_filters( [

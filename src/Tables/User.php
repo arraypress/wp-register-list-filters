@@ -11,10 +11,10 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\WP\RegisterListFilters\Tables;
+namespace ArrayPress\RegisterListFilters\Tables;
 
-use ArrayPress\WP\RegisterListFilters\Abstracts\ListFilters;
-use ArrayPress\WP\RegisterListFilters\Helpers\QueryArgsAdapter;
+use ArrayPress\RegisterListFilters\Abstracts\ListFilters;
+use ArrayPress\RegisterListFilters\Helpers\QueryArgsAdapter;
 
 class User extends ListFilters {
 

@@ -16,7 +16,7 @@
   },
   "autoload": {
     "psr-4": {
-      "ArrayPress\\WP\\RegisterListFilters\\": "src/"
+      "ArrayPress\\RegisterListFilters\\": "src/"
     },
     "files": [
       "src/Functions.php"

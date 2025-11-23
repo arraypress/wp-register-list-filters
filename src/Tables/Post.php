@@ -11,9 +11,9 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\WP\RegisterListFilters\Tables;
+namespace ArrayPress\RegisterListFilters\Tables;
 
-use ArrayPress\WP\RegisterListFilters\Abstracts\ListFilters;
+use ArrayPress\RegisterListFilters\Abstracts\ListFilters;
 
 class Post extends ListFilters {
 

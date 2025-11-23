@@ -15,7 +15,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\WP\RegisterListFilters\Helpers;
+namespace ArrayPress\RegisterListFilters\Helpers;
 
 class QueryArgsAdapter {
 

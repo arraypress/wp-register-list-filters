@@ -11,7 +11,7 @@
 
 declare( strict_types=1 );
 
-namespace ArrayPress\WP\RegisterListFilters\Abstracts;
+namespace ArrayPress\RegisterListFilters\Abstracts;
 
 use Exception;
 
